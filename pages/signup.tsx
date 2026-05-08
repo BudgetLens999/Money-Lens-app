@@ -25,16 +25,11 @@ export default function Signup() {
     })
     if (signupError) { setError(signupError.message); setLoading(false); return }
     if (data.user) {
-      try {
-        const controller = new AbortController()
-        setTimeout(() => controller.abort(), 4000)
-        await fetch('/api/create-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: data.user.id, email, name: fullName, ref }),
-          signal: controller.signal,
-        })
-      } catch (err) { /* non-blocking */ }
+      fetch('/api/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id, email, name: fullName, ref }),
+      }).catch(() => {})
     }
     router.push('/dashboard?welcome=1')
   }

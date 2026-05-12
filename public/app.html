@@ -367,7 +367,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
         <label style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;">Also send to (CC, comma-separated)</label>
         <input type="text" id="send-cc" placeholder="partner@email.com, accountant@email.com" style="width:100%;border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:14px;font-family:var(--sans);color:var(--ink);box-sizing:border-box;">
       </div>
-      <button id="send-btn" onclick="generateAndSend()" disabled>
+      <button id="send-btn" onclick="sendViaServer()">
         <svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;">
           <path fill="#EA4335" d="M6 36V12l18 12L42 12v24z"/>
           <path fill="#FBBC04" d="M6 12l18 12 18-12H6z"/>
@@ -1607,6 +1607,42 @@ function buildEmail(rows,fixed,flagged,name){
 // ════════════════════════════════════════════════
 // GMAIL SEND — direct Gmail API call, no server
 // ════════════════════════════════════════════════
+async function sendViaServer(){
+  var btn=document.getElementById('send-btn');
+  var name=document.getElementById('rep-name')?.value||'';
+  var to=document.getElementById('send-to')?.value||'';
+  var ccRaw=document.getElementById('send-cc')?.value||'';
+  if(!to){alert('Please enter a recipient email address.');return;}
+  if(!allRows||!allRows.length){alert('Please upload a CSV file first.');return;}
+  btn.disabled=true;btn.textContent='Sending...';
+  var html=buildEmail(allRows,txnData.fixed,txnData.flagged,name);
+  var dr=getDR();
+  var subject='Budget Report - '+fmtD(dr.weekAgo)+' to '+fmtD(dr.today);
+  var ccList=ccRaw?ccRaw.split(',').map(function(e){return e.trim();}).filter(function(e){return e;}):'';
+  // Get user ID from parent MoneyLens app
+  var userId='';
+  try{userId=window.parent.__mlUserId||'';}catch(e){}
+  try{
+    var res=await fetch('/api/send-report',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-user-id':userId},
+      body:JSON.stringify({to:to,cc:ccList,subject:subject,html:html,name:name})
+    });
+    var data=await res.json();
+    if(res.ok){
+      btn.textContent='✓ Report sent!';
+      btn.style.background='var(--ok)';
+      setTimeout(function(){btn.disabled=false;btn.textContent='📧 Email my report';btn.style.background='var(--amber)';},3000);
+    } else {
+      alert('Failed to send: '+(data.error||'Unknown error'));
+      btn.disabled=false;btn.textContent='📧 Email my report';
+    }
+  }catch(err){
+    alert('Error sending email. Please try again.');
+    btn.disabled=false;btn.textContent='📧 Email my report';
+  }
+}
+
 async function generateAndSend(){
   if(!txnData){setMsg('send-msg','err','Upload a CSV first.');return;}
   if(!tokenValid()){

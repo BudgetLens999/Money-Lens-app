@@ -1,15 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createAdminClient } from '../../lib/supabase-admin'
-import { checkAccess, canAccess } from '../../lib/access'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
-
-  const userId = req.headers['x-user-id'] as string
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
-
-  const access = await checkAccess(userId)
-  if (!canAccess(access)) return res.status(403).json({ error: 'Subscription required' })
 
   const { to, cc, subject, html, name } = req.body
   if (!to || !html) return res.status(400).json({ error: 'Missing to or html' })
@@ -21,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const payload: any = {
-      from: 'MoneyLens <reports@moneylens.app>',
+      from: 'MoneyLens <onboarding@resend.dev>',
       to: [to],
       subject: subject || 'Your MoneyLens Budget Report',
       html,

@@ -28,14 +28,15 @@ export default function Login() {
     router.push('/dashboard')
   }
 
-  async function handleReset() {
-    if (!email) { setError('Enter your email first'); return }
-    const supabase = createClient()
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset`,
-    })
-    setResetSent(true)
-  }
+ async function handleReset() {
+  if (!email) { setError('Enter your email first'); return }
+  const res = await fetch('/api/send-reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  setResetSent(true)
+}
 
   return (
     <>

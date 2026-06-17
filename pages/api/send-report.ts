@@ -110,9 +110,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     html,
   })
 
-  if (error) {
+if (error) {
     console.error('Resend error:', error)
-    return res.status(500).json({ error: 'Failed to send email', details: error })
+    return res.status(500).json({ error: JSON.stringify(error) })
   }
 
   return res.status(200).json({ success: true, id: data?.id })

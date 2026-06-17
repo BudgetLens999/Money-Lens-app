@@ -4,6 +4,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { createClient } from '../lib/supabase'
 import Link from 'next/link'
+import EmailReportModal from '../components/EmailReportModal'
 
 type AccessStatus = 'active' | 'trialing' | 'free_account' | 'expired' | 'none' | 'loading'
 
@@ -82,22 +83,3 @@ export default function Dashboard() {
                 {daysLeft} days left in trial
               </span>
             )}
-            <Link href="/account" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}>Account</Link>
-            <button onClick={handleLogout} style={{ fontSize: '13px', color: '#78716c', background: 'none', border: 'none', cursor: 'pointer' }}>Sign out</button>
-          </div>
-        </div>
-
-        {/* Full BudgetLens app in iframe */}
-        <iframe
-          src="/app.html"
-          style={{ flex: 1, border: 'none', width: '100%' }}
-          title="MoneyLens App"
-        />
-      </div>
-    </>
-  )
-}
-
-export async function getServerSideProps() {
-  return { props: {} }
-}

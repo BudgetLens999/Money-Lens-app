@@ -1,41 +1,119 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end()
-
-  const { to, cc, subject, html, name } = req.body
-  if (!to || !html) return res.status(400).json({ error: 'Missing to or html' })
-
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey || resendKey.includes('placeholder')) {
-    return res.status(500).json({ error: 'Email not configured' })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  try {
-    const payload: any = {
-      from: 'MoneyLens <onboarding@resend.dev>',
-      to: [to],
-      subject: subject || 'Your MoneyLens Budget Report',
-      html,
-    }
-    if (cc && cc.length > 0) payload.cc = Array.isArray(cc) ? cc : [cc]
+  const { recipientEmail, userName, month, totalSpent, totalBudget, categories } = req.body
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-
-    const data = await response.json()
-    if (!response.ok) {
-      return res.status(500).json({ error: data.message || 'Failed to send email' })
-    }
-
-    return res.status(200).json({ success: true, id: data.id })
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message })
+  if (!recipientEmail || !month) {
+    return res.status(400).json({ error: 'Missing required fields' })
   }
+
+  const categoryRows = (categories || []).map((cat: { name: string; spent: number; budget: number }) => {
+    const pct = cat.budget > 0 ? Math.min(Math.round((cat.spent / cat.budget) * 100), 100) : 0
+    const barColour = pct >= 100 ? '#dc2626' : pct >= 85 ? '#d97706' : '#2563eb'
+    return `<tr>
+      <td style="padding:10px 12px;font-size:14px;color:#1e293b;border-bottom:1px solid #e2e8f0;">${cat.name}</td>
+      <td style="padding:10px 12px;font-size:14px;color:#1e293b;border-bottom:1px solid #e2e8f0;text-align:right;">$${cat.spent}</td>
+      <td style="padding:10px 12px;font-size:14px;color:#64748b;border-bottom:1px solid #e2e8f0;text-align:right;">$${cat.budget}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
+        <div style="background:#e2e8f0;border-radius:4px;height:8px;width:100%;">
+          <div style="background:${barColour};border-radius:4px;height:8px;width:${pct}%;"></div>
+        </div>
+      </td>
+    </tr>`
+  }).join('')
+
+  const overUnder = (totalBudget || 0) - (totalSpent || 0)
+  const overUnderLabel = overUnder >= 0 ? 'Under budget' : 'Over budget'
+  const overUnderColour = overUnder >= 0 ? '#166534' : '#991b1b'
+  const overUnderBg = overUnder >= 0 ? '#dcfce7' : '#fee2e2'
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>BudgetPeriscope Report</title></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td style="background:#1e3a5f;padding:28px 32px;">
+            <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">BudgetPeriscope</p>
+            <p style="margin:6px 0 0;font-size:14px;color:#93c5fd;">Monthly Budget Report - ${month}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <p style="margin:0;font-size:15px;color:#334155;">Hi${userName ? ' ' + userName : ''},</p>
+            <p style="margin:8px 0 0;font-size:15px;color:#334155;">Here is your spending summary for <strong>${month}</strong>.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:16px;text-align:center;">
+                  <p style="margin:0;font-size:11px;color:#64748b;">TOTAL SPENT</p>
+                  <p style="margin:6px 0 0;font-size:22px;font-weight:700;color:#1e293b;">$${totalSpent || 0}</p>
+                </td>
+                <td width="4%"></td>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:16px;text-align:center;">
+                  <p style="margin:0;font-size:11px;color:#64748b;">TOTAL BUDGET</p>
+                  <p style="margin:6px 0 0;font-size:22px;font-weight:700;color:#1e293b;">$${totalBudget || 0}</p>
+                </td>
+                <td width="4%"></td>
+                <td width="32%" style="background:${overUnderBg};border-radius:8px;padding:16px;text-align:center;">
+                  <p style="margin:0;font-size:11px;color:${overUnderColour};">${overUnderLabel.toUpperCase()}</p>
+                  <p style="margin:6px 0 0;font-size:22px;font-weight:700;color:${overUnderColour};">$${Math.abs(overUnder)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ${categoryRows ? `
+        <tr>
+          <td style="padding:0 32px 28px;">
+            <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1e293b;">Category Breakdown</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+              <thead>
+                <tr style="background:#f8fafc;">
+                  <th style="padding:10px 12px;font-size:12px;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;">Category</th>
+                  <th style="padding:10px 12px;font-size:12px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Spent</th>
+                  <th style="padding:10px 12px;font-size:12px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Budget</th>
+                  <th style="padding:10px 12px;font-size:12px;color:#64748b;border-bottom:1px solid #e2e8f0;">Progress</th>
+                </tr>
+              </thead>
+              <tbody>${categoryRows}</tbody>
+            </table>
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">Sent by BudgetPeriscope - budgetperiscope.com</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const { data, error } = await resend.emails.send({
+    from: 'BudgetPeriscope <noreply@budgetperiscope.com>',
+    to: [recipientEmail],
+    subject: `Your BudgetPeriscope Report - ${month}`,
+    html,
+  })
+
+  if (error) {
+    console.error('Resend error:', error)
+    return res.status(500).json({ error: 'Failed to send email', details: error })
+  }
+
+  return res.status(200).json({ success: true, id: data?.id })
 }

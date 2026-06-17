@@ -87,10 +87,10 @@ export default function Dashboard() {
   if (access === 'expired' || access === 'none') {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-4">
-        <Head><title>Subscribe — MoneyLens</title></Head>
+        <Head><title>Subscribe - MoneyLens</title></Head>
         <div className="font-serif text-2xl text-stone-900 mb-8">Money<span className="text-amber-700 italic">Lens</span></div>
         <div className="card p-8 max-w-md w-full text-center">
-          <div className="text-4xl mb-4">🔒</div>
+          <div className="text-4xl mb-4">Access Required</div>
           <h1 className="text-xl font-semibold text-stone-900 mb-2">
             {access === 'expired' ? 'Your trial has ended' : 'Subscription required'}
           </h1>
@@ -107,7 +107,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#faf8f5' }}>
-      <Head><title>MoneyLens — Dashboard</title></Head>
+      <Head><title>MoneyLens - Dashboard</title></Head>
 
       <div style={{ background: '#fff', borderBottom: '1px solid #e7e5e4', padding: '0 20px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <span style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#1c1917' }}>
@@ -124,7 +124,7 @@ export default function Dashboard() {
             onClick={() => setModalOpen(true)}
             style={{ fontSize: '13px', color: '#fff', background: '#1e3a5f', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}
           >
-            ✉️ Email Report
+            Email Report
           </button>
           <button onClick={handleLogout} style={{ fontSize: '13px', color: '#78716c', background: 'none', border: 'none', cursor: 'pointer' }}>Sign out</button>
         </div>
@@ -137,15 +137,14 @@ export default function Dashboard() {
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '100%', maxWidth: '440px', boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}>
             {sendStatus === 'sent' ? (
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '40px', margin: '0 0 12px' }}>✅</p>
-                <p style={{ margin: '0 0 6px', fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>Report sent!</p>
-                <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>Check <strong>{reportEmail}</strong> — it should arrive within a minute.</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', margin: '0 0 8px' }}>Report sent!</p>
+                <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>Check <strong>{reportEmail}</strong> - it should arrive within a minute.</p>
                 <button onClick={closeModal} style={{ padding: '10px 24px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Done</button>
               </div>
             ) : (
               <div>
                 <p style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>Email your {month} report</p>
-                <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#64748b' }}>We'll send a budget summary to any email. No account connection required.</p>
+                <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#64748b' }}>We will send a budget summary to any email. No account connection required.</p>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Email address</label>
                 <input
                   type="email"
@@ -159,9 +158,10 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                   <button onClick={closeModal} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                   <button onClick={handleSendReport} disabled={sendStatus === 'sending'} style={{ flex: 2, padding: '10px', background: sendStatus === 'sending' ? '#93c5fd' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: sendStatus === 'sending' ? 'not-allowed' : 'pointer' }}>
-                    {sendStatus === 'sending' ? 'Sending…' : 'Send Report'}
+                    {sendStatus === 'sending' ? 'Sending...' : 'Send Report'}
                   </button>
                 </div>
+                {sendStatus === 'error' && <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#dc2626', textAlign: 'center' }}>{sendError}</p>}
               </div>
             )}
           </div>

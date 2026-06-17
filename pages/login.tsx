@@ -28,14 +28,17 @@ export default function Login() {
     router.push('/dashboard')
   }
 
- async function handleReset() {
+async function handleReset() {
   if (!email) { setError('Enter your email first'); return }
-  const res = await fetch('/api/send-reset', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+  const supabase = createClient()
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://budgetperiscope.com/auth/callback',
   })
-  setResetSent(true)
+  if (resetError) {
+    setError(resetError.message)
+  } else {
+    setResetSent(true)
+  }
 }
 
   return (

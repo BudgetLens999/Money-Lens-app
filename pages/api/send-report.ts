@@ -104,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 </html>`
 
   const { data, error } = await resend.emails.send({
-    from: 'BudgetPeriscope <noreply@budgetperiscope.com>',
+    from: 'BudgetPeriscope <onboarding@resend.dev>',
     to: [recipientEmail],
     subject: `Your BudgetPeriscope Report - ${month}`,
     html,

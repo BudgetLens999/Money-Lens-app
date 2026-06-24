@@ -1750,6 +1750,17 @@ updateGmailUI();
 renderPresets();
 renderVarTable();
 renderFixed();
+  window.addEventListener('message', function(e) {
+  if (e.data === 'REQUEST_BUDGET_DATA') {
+    var tm = allRows.reduce(function(s,r){return s+r.ms;},0);
+    var tb = allRows.reduce(function(s,r){return s+(r.mt||0);},0);
+    var cats = allRows.filter(function(r){return r.ms>0||r.mt>0;}).map(function(r){
+      return { name: r.cat, spent: Math.round(r.ms*100)/100, budget: Math.round((r.mt||0)*100)/100 };
+    });
+    var mn = new Date().toLocaleString('default',{month:'long',year:'numeric'});
+    window.parent.postMessage({ type: 'BUDGET_DATA', totalSpent: Math.round(tm*100)/100, totalBudget: Math.round(tb*100)/100, categories: cats, month: mn }, '*');
+  }
+});
 </script>
 </body>
 </html>

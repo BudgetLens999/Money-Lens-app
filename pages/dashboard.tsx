@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { createClient } from '../lib/supabase'
@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [reportEmail, setReportEmail] = useState('')
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [sendError, setSendError] = useState('')
+  const [budgetData, setBudgetData] = useState<any>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -33,10 +35,29 @@ export default function Dashboard() {
     })
   }, [router])
 
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      if (e.data && e.data.type === 'BUDGET_DATA') {
+        setBudgetData(e.data)
+        setModalOpen(true)
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  function handleEmailReportClick() {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage('REQUEST_BUDGET_DATA', '*')
+    } else {
+      setModalOpen(true)
+    }
   }
 
   async function handleSendReport() {
@@ -47,11 +68,18 @@ export default function Dashboard() {
     setSendStatus('sending')
     setSendError('')
     try {
-      const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+      const month = budgetData?.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
       const res = await fetch('/api/send-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipientEmail: reportEmail, userName: user?.email, month, totalSpent: 0, totalBudget: 0, categories: [] }),
+        body: JSON.stringify({
+          recipientEmail: reportEmail,
+          userName: user?.email,
+          month,
+          totalSpent: budgetData?.totalSpent || 0,
+          totalBudget: budgetData?.totalBudget || 0,
+          categories: budgetData?.categories || [],
+        }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -103,7 +131,7 @@ export default function Dashboard() {
     )
   }
 
-  const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+  const month = budgetData?.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#faf8f5' }}>
@@ -121,7 +149,7 @@ export default function Dashboard() {
           )}
           <Link href="/account" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}>Account</Link>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={handleEmailReportClick}
             style={{ fontSize: '13px', color: '#fff', background: '#1e3a5f', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}
           >
             Email Report
@@ -130,7 +158,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <iframe src="/app.html" style={{ flex: 1, border: 'none', width: '100%' }} title="MoneyLens App" />
+      <iframe
+        ref={iframeRef}
+        src="/app.html"
+        style={{ flex: 1, border: 'none', width: '100%' }}
+        title="MoneyLens App"
+      />
 
       {modalOpen && (
         <div onClick={closeModal} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -161,7 +194,7 @@ export default function Dashboard() {
                     {sendStatus === 'sending' ? 'Sending...' : 'Send Report'}
                   </button>
                 </div>
-                {sendStatus === 'error' && <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#dc2626', textAlign: 'center' }}>{sendError}</p>}
+                {status === 'error' && <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#dc2626', textAlign: 'center' }}>{sendError}</p>}
               </div>
             )}
           </div>

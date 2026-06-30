@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { recipientEmail, userName, month, totalSpent, totalBudget, categories, fixedItems, overBudget } = req.body
+  const { recipientEmail, userName, month, totalSpent, totalBudget, weekSpent, weekBudget, categories, fixedItems, overBudget } = req.body
 
   if (!recipientEmail || !month) {
     return res.status(400).json({ error: 'Missing required fields' })
@@ -25,6 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const overUnderColour = overUnder >= 0 ? '#166534' : '#991b1b'
   const overUnderBg = overUnder >= 0 ? '#dcfce7' : '#fee2e2'
 
+  const weekOverUnder = (weekBudget || 0) - (weekSpent || 0)
+  const weekLabel = weekOverUnder >= 0 ? 'Under budget' : 'Over budget'
+  const weekColour = weekOverUnder >= 0 ? '#166534' : '#991b1b'
+  const weekBg = weekOverUnder >= 0 ? '#dcfce7' : '#fee2e2'
+
   const overBudgetBanner = overBudget && overBudget.length > 0 ? `
     <tr>
       <td style="padding:0 32px 20px;">
@@ -34,24 +39,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       </td>
     </tr>` : ''
 
-  const categoryRows = (categories || []).map((cat: { name: string; spent: number; budget: number }) => {
-    const pct = cat.budget > 0 ? Math.min(Math.round((cat.spent / cat.budget) * 100), 100) : 0
-    const barColour = pct >= 100 ? '#dc2626' : pct >= 85 ? '#d97706' : '#2563eb'
-    const remaining = cat.budget - cat.spent
-    const remainingStr = remaining >= 0 ? `$${remaining.toFixed(0)} left` : `$${Math.abs(remaining).toFixed(0)} over`
-    const remainingColour = remaining >= 0 ? '#166534' : '#991b1b'
-    return `<tr>
-      <td style="padding:8px 12px;font-size:13px;color:#1e293b;border-bottom:1px solid #e2e8f0;">${cat.name}</td>
-      <td style="padding:8px 12px;font-size:13px;color:#1e293b;border-bottom:1px solid #e2e8f0;text-align:right;">${cat.spent > 0 ? '$' + cat.spent.toLocaleString() : '-'}</td>
-      <td style="padding:8px 12px;font-size:13px;color:#64748b;border-bottom:1px solid #e2e8f0;text-align:right;">${cat.budget > 0 ? '$' + cat.budget.toLocaleString() : '-'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;min-width:100px;">
-        <div style="background:#e2e8f0;border-radius:4px;height:6px;width:100%;">
-          <div style="background:${barColour};border-radius:4px;height:6px;width:${pct}%;"></div>
-        </div>
-      </td>
-      <td style="padding:8px 12px;font-size:12px;color:${remainingColour};border-bottom:1px solid #e2e8f0;text-align:right;">${remainingStr}</td>
-    </tr>`
-  }).join('')
+  function buildCategoryTable(cats: any[], spentKey: string, budgetKey: string) {
+    return (cats || []).map((cat: any) => {
+      const spent = cat[spentKey] || 0
+      const budget = cat[budgetKey] || 0
+      const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0
+      const barColour = pct >= 100 ? '#dc2626' : pct >= 85 ? '#d97706' : '#2563eb'
+      const remaining = budget - spent
+      const remainingStr = remaining >= 0 ? `$${remaining.toFixed(0)} left` : `$${Math.abs(remaining).toFixed(0)} over`
+      const remainingColour = remaining >= 0 ? '#166534' : '#991b1b'
+      return `<tr>
+        <td style="padding:8px 12px;font-size:13px;color:#1e293b;border-bottom:1px solid #e2e8f0;">${cat.name}</td>
+        <td style="padding:8px 12px;font-size:13px;color:#1e293b;border-bottom:1px solid #e2e8f0;text-align:right;">${spent > 0 ? '$' + spent.toLocaleString() : '-'}</td>
+        <td style="padding:8px 12px;font-size:13px;color:#64748b;border-bottom:1px solid #e2e8f0;text-align:right;">${budget > 0 ? '$' + budget.toLocaleString() : '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;min-width:100px;">
+          <div style="background:#e2e8f0;border-radius:4px;height:6px;width:100%;">
+            <div style="background:${barColour};border-radius:4px;height:6px;width:${pct}%;"></div>
+          </div>
+        </td>
+        <td style="padding:8px 12px;font-size:12px;color:${remainingColour};border-bottom:1px solid #e2e8f0;text-align:right;">${remainingStr}</td>
+      </tr>`
+    }).join('')
+  }
+
+  const monthlyRows = buildCategoryTable(categories, 'spent', 'budget')
+  const weeklyRows = buildCategoryTable(categories, 'weekSpent', 'weekBudget')
 
   const fixedRows = (fixedItems || []).map((f: { name: string; amount: number; paid: boolean }) => {
     return `<tr>
@@ -68,6 +80,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const totalFixed = (fixedItems || []).reduce((s: number, f: { amount: number }) => s + f.amount, 0)
 
+  const tableHeader = `<thead>
+    <tr style="background:#f8fafc;">
+      <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;">Category</th>
+      <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Actual</th>
+      <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Target</th>
+      <th style="padding:8px 12px;font-size:11px;color:#64748b;border-bottom:1px solid #e2e8f0;">Progress</th>
+      <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Remaining</th>
+    </tr>
+  </thead>`
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>BudgetPeriscope Report</title></head>
@@ -79,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <tr>
           <td style="background:#1e3a5f;padding:28px 32px;">
             <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">BudgetPeriscope</p>
-            <p style="margin:6px 0 0;font-size:14px;color:#93c5fd;">Monthly Budget Report - ${month}</p>
+            <p style="margin:6px 0 0;font-size:14px;color:#93c5fd;">Budget Report - ${month}</p>
           </td>
         </tr>
 
@@ -91,22 +113,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         </tr>
 
         <tr>
-          <td style="padding:0 32px 20px;">
+          <td style="padding:0 32px 8px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">This week</p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:14px;text-align:center;">
-                  <p style="margin:0;font-size:11px;color:#64748b;">TOTAL SPENT</p>
-                  <p style="margin:6px 0 0;font-size:20px;font-weight:700;color:#1e293b;">$${(totalSpent||0).toLocaleString()}</p>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:#64748b;">SPENT</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#1e293b;">$${(weekSpent||0).toLocaleString()}</p>
                 </td>
                 <td width="4%"></td>
-                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:14px;text-align:center;">
-                  <p style="margin:0;font-size:11px;color:#64748b;">TOTAL BUDGET</p>
-                  <p style="margin:6px 0 0;font-size:20px;font-weight:700;color:#1e293b;">$${(totalBudget||0).toLocaleString()}</p>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:#64748b;">BUDGET</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#1e293b;">$${(weekBudget||0).toLocaleString()}</p>
                 </td>
                 <td width="4%"></td>
-                <td width="32%" style="background:${overUnderBg};border-radius:8px;padding:14px;text-align:center;">
-                  <p style="margin:0;font-size:11px;color:${overUnderColour};">${overUnderLabel.toUpperCase()}</p>
-                  <p style="margin:6px 0 0;font-size:20px;font-weight:700;color:${overUnderColour};">$${Math.abs(overUnder).toLocaleString()}</p>
+                <td width="32%" style="background:${weekBg};border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:${weekColour};">${weekLabel.toUpperCase()}</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:${weekColour};">$${Math.abs(weekOverUnder).toLocaleString()}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">This month</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:#64748b;">SPENT</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#1e293b;">$${(totalSpent||0).toLocaleString()}</p>
+                </td>
+                <td width="4%"></td>
+                <td width="32%" style="background:#f1f5f9;border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:#64748b;">BUDGET</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#1e293b;">$${(totalBudget||0).toLocaleString()}</p>
+                </td>
+                <td width="4%"></td>
+                <td width="32%" style="background:${overUnderBg};border-radius:8px;padding:12px;text-align:center;">
+                  <p style="margin:0;font-size:10px;color:${overUnderColour};">${overUnderLabel.toUpperCase()}</p>
+                  <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:${overUnderColour};">$${Math.abs(overUnder).toLocaleString()}</p>
                 </td>
               </tr>
             </table>
@@ -116,19 +163,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ${overBudgetBanner}
 
         <tr>
-          <td style="padding:0 32px 24px;">
-            <p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1e293b;">Variable spending - ${month}</p>
+          <td style="padding:8px 32px 24px;">
+            <p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1e293b;">Weekly breakdown by category</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-              <thead>
-                <tr style="background:#f8fafc;">
-                  <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;">Category</th>
-                  <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Actual</th>
-                  <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Target</th>
-                  <th style="padding:8px 12px;font-size:11px;color:#64748b;border-bottom:1px solid #e2e8f0;">Progress</th>
-                  <th style="padding:8px 12px;font-size:11px;color:#64748b;text-align:right;border-bottom:1px solid #e2e8f0;">Remaining</th>
-                </tr>
-              </thead>
-              <tbody>${categoryRows}</tbody>
+              ${tableHeader}
+              <tbody>${weeklyRows}</tbody>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1e293b;">Monthly breakdown by category</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+              ${tableHeader}
+              <tbody>${monthlyRows}</tbody>
             </table>
           </td>
         </tr>

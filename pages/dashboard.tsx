@@ -76,9 +76,13 @@ export default function Dashboard() {
           recipientEmail: reportEmail,
           userName: user?.email,
           month,
-          totalSpent: budgetData?.totalSpent || 0,
-          totalBudget: budgetData?.totalBudget || 0,
-          categories: budgetData?.categories || [],
+totalSpent: budgetData?.totalSpent || 0,
+            totalBudget: budgetData?.totalBudget || 0,
+            weekSpent: budgetData?.weekSpent || 0,
+            weekBudget: budgetData?.weekBudget || 0,
+            categories: budgetData?.categories || [],
+            fixedItems: budgetData?.fixedItems || [],
+            overBudget: budgetData?.overBudget || [],
         }),
       })
       const data = await res.json()

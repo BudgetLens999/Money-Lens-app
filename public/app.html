@@ -248,23 +248,23 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
         <button class="nav-tab" onclick="showTab('sample',this)">Sample Data</button>
       </div>
     </nav>
-<div class="newcat-box">
-    <h3>Create new category</h3>
-    <div class="newcat-row">
-      <label>Category name</label>
-      <input type="text" id="newcat-name" placeholder="e.g. Pet Care, Kids Activities" autocomplete="off">
-    </div>
-    <div class="newcat-row">
-      <label>Monthly budget target (optional)</label>
-      <input type="number" id="newcat-budget" placeholder="$ 0" min="0">
-    </div>
-    <div class="newcat-btns">
-      <button class="newcat-cancel" onclick="closeNewCatModal()">Cancel</button>
-      <button class="newcat-ok" onclick="confirmNewCat()">Create &amp; assign</button>
+<div class="newcat-modal" id="newcat-modal">
+    <div class="newcat-box">
+      <h3>Create new category</h3>
+      <div class="newcat-row">
+        <label>Category name</label>
+        <input type="text" id="newcat-name" placeholder="e.g. Pet Care, Kids Activities" autocomplete="off">
+      </div>
+      <div class="newcat-row">
+        <label>Monthly budget target (optional)</label>
+        <input type="number" id="newcat-budget" placeholder="$ 0" min="0">
+      </div>
+      <div class="newcat-btns">
+        <button class="newcat-cancel" onclick="closeNewCatModal()">Cancel</button>
+        <button class="newcat-ok" onclick="confirmNewCat()">Create &amp; assign</button>
+      </div>
     </div>
   </div>
-</div>
-</div>
 
 <!-- GMAIL SETUP MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">

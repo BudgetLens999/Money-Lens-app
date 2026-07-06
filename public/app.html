@@ -627,7 +627,7 @@ function getPaid(){
   if(!raw||raw._m!==now)return{_m:now};
   return raw;
 }
-function setPaid(name,val){var s=getPaid();s[name]=val;lsSet(PK,s);}
+function setPaid(name,val){var s=getPaid();s[name]=val;lsSet(PK,s);syncToServer();}
 
 function getVarMap(){
   var map={};
@@ -761,7 +761,7 @@ function addFixed(){
   var n=document.getElementById('fc-name'),a=document.getElementById('fc-amt'),f=document.getElementById('fc-freq');
   var name=n.value.trim();if(!name){n.focus();return;}
   var costs=loadFixed();costs.push({name:name,amt:parseFloat(a.value)||0,freq:f.value});
-  lsSet(FK,costs);n.value='';a.value='';renderFixed();
+lsSet(FK,costs);n.value='';a.value='';renderFixed();syncToServer();
 }
 
 // ════════════════════════════════════════════════
@@ -1738,8 +1738,31 @@ function showTab(id,btn){
 checkOAuthCallback();
 updateGmailUI();
 renderPresets();
-renderVarTable();
-renderFixed();
+syncFromServer();
+
+function syncFromServer(){
+  fetch('/api/budget-settings-load')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.var_targets&&d.var_targets.length>0){lsSet(VK,d.var_targets);}
+      if(d.fixed_items&&d.fixed_items.length>0){lsSet(FK,d.fixed_items);}
+      if(d.paid_items&&Object.keys(d.paid_items).length>0){lsSet(PK,d.paid_items);}
+    })
+    .catch(function(){})
+    .finally(function(){renderVarTable();renderFixed();});
+}
+
+function syncToServer(){
+  fetch('/api/budget-settings-save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      var_targets:lsGet(VK)||[],
+      fixed_items:lsGet(FK)||[],
+      paid_items:lsGet(PK)||{}
+    })
+  }).catch(function(){});
+}
 window.addEventListener('message', function(e) {
   if (e.data === 'REQUEST_BUDGET_DATA') {
     var tm = allRows.reduce(function(s,r){return s+r.ms;},0);

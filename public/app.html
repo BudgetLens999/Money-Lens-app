@@ -699,7 +699,7 @@ function collectVar(){
   });
   return rows;
 }
-function saveVar(){lsSet(VK,collectVar());}
+function saveVar(){lsSet(VK,collectVar());syncToServer();}
 function deleteCustomCat(name){
   if(!confirm('Delete custom category "'+name+'"? Transactions already assigned to it will keep the category, but it will no longer appear as an option.'))return;
   // Remove from custom cats list

@@ -1738,32 +1738,14 @@ function showTab(id,btn){
 checkOAuthCallback();
 updateGmailUI();
 renderPresets();
-syncFromServer();
 
-function syncFromServer(){
-  fetch('/api/budget-settings-load')
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.var_targets&&d.var_targets.length>0){lsSet(VK,d.var_targets);}
-      if(d.fixed_items&&d.fixed_items.length>0){lsSet(FK,d.fixed_items);}
-      if(d.paid_items&&Object.keys(d.paid_items).length>0){lsSet(PK,d.paid_items);}
-    })
-    .catch(function(){})
-    .finally(function(){renderVarTable();renderFixed();});
-}
+var _userId = null;
 
-function syncToServer(){
-  fetch('/api/budget-settings-save',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      var_targets:lsGet(VK)||[],
-      fixed_items:lsGet(FK)||[],
-      paid_items:lsGet(PK)||{}
-    })
-  }).catch(function(){});
-}
 window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'SET_USER_ID') {
+    _userId = e.data.userId;
+    syncFromServer();
+  }
   if (e.data === 'REQUEST_BUDGET_DATA') {
     var tm = allRows.reduce(function(s,r){return s+r.ms;},0);
     var tb = allRows.reduce(function(s,r){return s+(r.mt||0);},0);
@@ -1784,6 +1766,34 @@ window.addEventListener('message', function(e) {
     window.parent.postMessage({ type: 'BUDGET_DATA', totalSpent: Math.round(tm*100)/100, totalBudget: Math.round(tb*100)/100, weekSpent: Math.round(tw*100)/100, weekBudget: Math.round(twb*100)/100, categories: cats, fixedItems: fixedItems, overBudget: over, month: mn }, '*');
   }
 });
+
+function syncFromServer(){
+  if(!_userId) return;
+  fetch('/api/budget-settings-load', { headers: { 'x-user-id': _userId } })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.var_targets&&d.var_targets.length>0){lsSet(VK,d.var_targets);}
+      if(d.fixed_items&&d.fixed_items.length>0){lsSet(FK,d.fixed_items);}
+      if(d.paid_items&&Object.keys(d.paid_items).length>0){lsSet(PK,d.paid_items);}
+      renderVarTable();renderFixed();
+    })
+    .catch(function(){renderVarTable();renderFixed();});
+}
+
+function syncToServer(){
+  if(!_userId) return;
+  fetch('/api/budget-settings-save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-user-id':_userId},
+    body:JSON.stringify({
+      var_targets:lsGet(VK)||[],
+      fixed_items:lsGet(FK)||[],
+      paid_items:lsGet(PK)||{}
+    })
+  }).catch(function(){});
+}
+
+
 </script>
 </body>
 </html>

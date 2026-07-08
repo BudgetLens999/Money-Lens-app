@@ -162,12 +162,17 @@ totalSpent: budgetData?.totalSpent || 0,
         </div>
       </div>
 
-      <iframe
-        ref={iframeRef}
-        src="/app.html"
-        style={{ flex: 1, border: 'none', width: '100%' }}
-        title="MoneyLens App"
-      />
+<iframe
+  ref={iframeRef}
+  src="/app.html"
+  style={{ flex: 1, border: 'none', width: '100%' }}
+  title="MoneyLens App"
+  onLoad={() => {
+    if (iframeRef.current?.contentWindow && user) {
+      iframeRef.current.contentWindow.postMessage({ type: 'SET_USER_ID', userId: user.id }, '*')
+    }
+  }}
+/>
 
       {modalOpen && (
         <div onClick={closeModal} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>

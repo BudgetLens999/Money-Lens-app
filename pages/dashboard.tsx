@@ -24,6 +24,11 @@ export default function Dashboard() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUser(user)
+      setTimeout(() => {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage({ type: 'SET_USER_ID', userId: user.id }, '*')
+        }
+      }, 1500)
       try {
         const res = await fetch('/api/check-access', { headers: { 'x-user-id': user.id } })
         const data = await res.json()
@@ -76,13 +81,13 @@ export default function Dashboard() {
           recipientEmail: reportEmail,
           userName: user?.email,
           month,
-totalSpent: budgetData?.totalSpent || 0,
-            totalBudget: budgetData?.totalBudget || 0,
-            weekSpent: budgetData?.weekSpent || 0,
-            weekBudget: budgetData?.weekBudget || 0,
-            categories: budgetData?.categories || [],
-            fixedItems: budgetData?.fixedItems || [],
-            overBudget: budgetData?.overBudget || [],
+          totalSpent: budgetData?.totalSpent || 0,
+          totalBudget: budgetData?.totalBudget || 0,
+          weekSpent: budgetData?.weekSpent || 0,
+          weekBudget: budgetData?.weekBudget || 0,
+          categories: budgetData?.categories || [],
+          fixedItems: budgetData?.fixedItems || [],
+          overBudget: budgetData?.overBudget || [],
         }),
       })
       const data = await res.json()
@@ -162,17 +167,17 @@ totalSpent: budgetData?.totalSpent || 0,
         </div>
       </div>
 
-<iframe
-  ref={iframeRef}
-  src="/app.html"
-  style={{ flex: 1, border: 'none', width: '100%' }}
-  title="MoneyLens App"
-  onLoad={() => {
-    if (iframeRef.current?.contentWindow && user) {
-      iframeRef.current.contentWindow.postMessage({ type: 'SET_USER_ID', userId: user.id }, '*')
-    }
-  }}
-/>
+      <iframe
+        ref={iframeRef}
+        src="/app.html"
+        style={{ flex: 1, border: 'none', width: '100%' }}
+        title="MoneyLens App"
+        onLoad={() => {
+          if (iframeRef.current?.contentWindow && user) {
+            iframeRef.current.contentWindow.postMessage({ type: 'SET_USER_ID', userId: user.id }, '*')
+          }
+        }}
+      />
 
       {modalOpen && (
         <div onClick={closeModal} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -203,7 +208,7 @@ totalSpent: budgetData?.totalSpent || 0,
                     {sendStatus === 'sending' ? 'Sending...' : 'Send Report'}
                   </button>
                 </div>
-                {status === 'error' && <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#dc2626', textAlign: 'center' }}>{sendError}</p>}
+                {sendStatus === 'error' && <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#dc2626', textAlign: 'center' }}>{sendError}</p>}
               </div>
             )}
           </div>

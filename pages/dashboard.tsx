@@ -28,7 +28,7 @@ export default function Dashboard() {
         if (iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage({ type: 'SET_USER_ID', userId: user.id }, '*')
         }
-      }, 1500)
+      }, 500)
       try {
         const res = await fetch('/api/check-access', { headers: { 'x-user-id': user.id } })
         const data = await res.json()

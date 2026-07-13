@@ -246,6 +246,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
         <button class="nav-tab" onclick="showTab('budgets',this)">Budgets</button>
         <button class="nav-tab" onclick="showTab('fixed',this)">Fixed Costs</button>
         <button class="nav-tab" onclick="showTab('sample',this)">Sample Data</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <span class="gmail-dot" id="gmail-dot"></span>
+          <span class="gmail-label" id="gmail-label">Gmail: not connected</span>
+          <button class="gmail-connect-btn" id="gmail-connect-btn" onclick="handleGmailAuth()">Connect Gmail</button>
+        </div>
       </div>
     </nav>
 <div class="newcat-modal" id="newcat-modal">
@@ -339,7 +344,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
     <div class="txn-summary" id="txn-summary"></div>
   </div>
   </div>
-<div class="card" style="display:none;"
+<div class="card" style="display:none;">
     <div class="card-head">
       <span class="step" id="dot2">3</span>
       <span class="cht">Generate &amp; send</span>
@@ -371,6 +376,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
       <div class="msg" id="send-msg"></div>
     </div>
   </div>
+    <div id="results-section" style="display:none;">
     <div class="filter-bar">
       <span class="filter-lbl">Show</span>
       <button class="fchip active" onclick="setFilter('all',this)">All</button>

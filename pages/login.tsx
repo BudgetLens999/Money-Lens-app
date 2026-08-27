@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+﻿export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import Head from 'next/head'
@@ -30,20 +30,23 @@ export default function Login() {
 
 async function handleReset() {
   if (!email) { setError('Enter your email first'); return }
-  const supabase = createClient()
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://budgetperiscope.com/auth/callback',
+  setError('')
+  const res = await fetch('/api/send-reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
   })
-  if (resetError) {
-    setError(resetError.message)
-  } else {
-    setResetSent(true)
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    setError(data.error || 'Something went wrong sending the reset email')
+    return
   }
+  setResetSent(true)
 }
 
   return (
     <>
-      <Head><title>Sign in — MoneyLens</title></Head>
+      <Head><title>Sign in â€” MoneyLens</title></Head>
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-4">
         <Link href="/" className="font-serif text-2xl text-stone-900 mb-8">
           Money<span className="text-amber-700 italic">Lens</span>
@@ -58,7 +61,7 @@ async function handleReset() {
           )}
           {resetSent && (
             <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 mb-4">
-              Password reset email sent — check your inbox.
+              Password reset email sent â€” check your inbox.
             </div>
           )}
 
@@ -72,7 +75,7 @@ async function handleReset() {
               <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <button type="submit" disabled={loading} className="btn-primary w-full text-sm py-3 disabled:opacity-50">
-              {loading ? 'Signing in...' : 'Sign in →'}
+              {loading ? 'Signing in...' : 'Sign in â†’'}
             </button>
           </form>
 
@@ -89,3 +92,4 @@ async function handleReset() {
     </>
   )
 }
+
